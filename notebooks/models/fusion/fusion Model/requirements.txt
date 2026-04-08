@@ -1,0 +1,7 @@
+xgboost
+torch
+pandas
+numpy
+flask
+firebase-admin
+scikit-learn

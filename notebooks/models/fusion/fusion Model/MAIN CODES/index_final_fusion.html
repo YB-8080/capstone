@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Global Fusion Fire Risk Monitor</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #0b1120; color: #e5e7eb; }
+    .wrap { max-width: 1450px; margin: 0 auto; padding: 20px; }
+    .title {
+      font-size: 34px; font-weight: 800; margin-bottom: 24px; text-align: center;
+      background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .card { background: #1e293b; border-radius: 14px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #334155; }
+    h3 { margin-top: 0; margin-bottom: 12px; font-size: 18px; color: #94a3b8; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+    .span-12 { grid-column: span 12; }
+    .flex-center { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+    .big { font-size: 38px; font-weight: 800; }
+    .big-main { font-size: 44px; font-weight: 900; }
+    .status-badge { padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; white-space: nowrap; }
+    .risk-low { color: #10b981; }
+    .risk-medium { color: #f59e0b; }
+    .risk-high { color: #ef4444; }
+    .badge-low { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .badge-medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+    .badge-high { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .alarm-on { animation: pulse 1s infinite alternate; border: 2px solid #ef4444; background: rgba(239, 68, 68, 0.1); }
+    .main-card { border: 2px solid #60a5fa; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); } }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    td { padding: 8px 0; border-bottom: 1px solid #334155; vertical-align: top; }
+    td:last-child { text-align: right; font-weight: bold; color: #f8fafc; word-break: break-word; }
+    .sys-info {
+      background: #0f172a; padding: 12px; border-radius: 8px; font-family: monospace; color: #94a3b8;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px;
+    }
+    .sensor-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .mapped-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .json-box {
+      background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 14px;
+      font-family: Consolas, monospace; font-size: 13px; max-height: 360px; overflow: auto;
+      white-space: pre-wrap; color: #cbd5e1;
+    }
+    .small-note { color: #94a3b8; font-size: 13px; margin-top: -4px; margin-bottom: 10px; }
+    @media (max-width: 1100px) {
+      .span-3, .span-4, .span-6 { grid-column: span 12; }
+      .sys-info, .sensor-grid, .mapped-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">Global Multi-Model Fusion Fire Risk Monitor</div>
+
+    <div class="sys-info">
+      <span id="sysStatus">Status: Booting...</span>
+      <span id="sysMessage">Message: --</span>
+      <span id="sysWindow">Buffers: --</span>
+      <span id="sysTime">Time: --</span>
+    </div>
+
+    <div class="grid">
+      <div id="cardFinal" class="card span-12 main-card">
+        <h3>Final Fused System Risk</h3>
+        <div class="flex-center">
+          <div id="finalRisk" class="big-main">--%</div>
+          <div id="finalBadge" class="status-badge badge-low">LOW</div>
+        </div>
+      </div>
+
+      <div id="cardDs1" class="card span-4">
+        <h3>DS1: Indoor Lab</h3>
+        <div class="flex-center">
+          <div id="ds1Risk" class="big">--%</div>
+          <div id="ds1Badge" class="status-badge badge-low">LOW</div>
+        </div>
+      </div>
+
+      <div id="cardDs2" class="card span-4">
+        <h3>DS2: Industrial Hall</h3>
+        <div class="flex-center">
+          <div id="ds2Risk" class="big">--%</div>
+          <div id="ds2Badge" class="status-badge badge-low">LOW</div>
+        </div>
+      </div>
+
+      <div id="cardDs3" class="card span-4">
+        <h3>DS3: Smart Building</h3>
+        <div class="flex-center">
+          <div id="ds3Risk" class="big">--%</div>
+          <div id="ds3Badge" class="status-badge badge-low">LOW</div>
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <h3>Risk Trends</h3>
+        <canvas id="riskChart" height="90"></canvas>
+      </div>
+
+      <div class="card span-12">
+        <h3>Key Live Sensors</h3>
+        <div class="small-note">Shows the common live sensor values and the fields used to map the three dataset pipelines.</div>
+        <div class="sensor-grid">
+          <table>
+            <tr><td>Temperature</td><td id="sTemp">--</td></tr>
+            <tr><td>Humidity</td><td id="sHum">--</td></tr>
+            <tr><td>eCO2</td><td id="sEco2">--</td></tr>
+          </table>
+          <table>
+            <tr><td>MQ2 (Smoke)</td><td id="sMq2">--</td></tr>
+            <tr><td>MQ4 (Methane)</td><td id="sMq4">--</td></tr>
+            <tr><td>MQ6 (LPG)</td><td id="sMq6">--</td></tr>
+          </table>
+          <table>
+            <tr><td>MQ9 (CO)</td><td id="sMq9">--</td></tr>
+            <tr><td>PM2.5</td><td id="sPm25">--</td></tr>
+            <tr><td>PM10</td><td id="sPm10">--</td></tr>
+          </table>
+          <table>
+            <tr><td>TVOC</td><td id="sTvoc">--</td></tr>
+            <tr><td>UV (Flame)</td><td id="sUv">--</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="card span-12">
+        <h3>Dataset-Specific Mapped Inputs</h3>
+        <div class="small-note">The same live stream is transformed into separate DS1, DS2, and DS3 predictor inputs.</div>
+        <div class="mapped-grid">
+          <div><h3>DS1 Input Map</h3><div id="mapDs1" class="json-box">{}</div></div>
+          <div><h3>DS2 Input Map</h3><div id="mapDs2" class="json-box">{}</div></div>
+          <div><h3>DS3 Input Map</h3><div id="mapDs3" class="json-box">{}</div></div>
+        </div>
+      </div>
+
+      <div class="card span-6">
+        <h3>All Incoming Sensor Fields</h3>
+        <div class="small-note">Every field received from Firebase is shown here.</div>
+        <div id="allSensors" class="json-box">{}</div>
+      </div>
+
+      <div class="card span-6">
+        <h3>Model Integration Notes</h3>
+        <div class="small-note">Shows dataset-specific windows and the global fusion mode.</div>
+        <div id="modelNotes" class="json-box">{}</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ctx = document.getElementById("riskChart").getContext("2d");
+    const riskChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [
+          { label: "Final Fused %", data: [], borderColor: "#f43f5e", tension: 0.35 },
+          { label: "DS1 %", data: [], borderColor: "#38bdf8", tension: 0.35 },
+          { label: "DS2 %", data: [], borderColor: "#a78bfa", tension: 0.35 },
+          { label: "DS3 %", data: [], borderColor: "#22c55e", tension: 0.35 }
+        ]
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        plugins: { legend: { labels: { color: "#94a3b8" } } },
+        scales: {
+          x: { display: false },
+          y: { min: 0, max: 100, ticks: { color: "#94a3b8" }, grid: { color: "#334155" } }
+        }
+      }
+    });
+
+    function setCardStyle(cardEl, riskEl, badgeEl, data, main=false) {
+      const riskLevel = data.risk_level || "LOW";
+      cardEl.classList.remove("alarm-on");
+      riskEl.className = main ? "big-main" : "big";
+      badgeEl.className = "status-badge";
+
+      if (data.alarm === 1) {
+        cardEl.classList.add("alarm-on");
+        badgeEl.textContent = "ALARM / FIRE";
+        badgeEl.classList.add("badge-high");
+        riskEl.classList.add("risk-high");
+      } else {
+        badgeEl.textContent = riskLevel;
+        if (riskLevel === "HIGH") {
+          badgeEl.classList.add("badge-high");
+          riskEl.classList.add("risk-high");
+        } else if (riskLevel === "MEDIUM") {
+          badgeEl.classList.add("badge-medium");
+          riskEl.classList.add("risk-medium");
+        } else {
+          badgeEl.classList.add("badge-low");
+          riskEl.classList.add("risk-low");
+        }
+      }
+    }
+
+    function updatePipelineCard(ds, data) {
+      const riskEl = document.getElementById(`${ds}Risk`);
+      const badgeEl = document.getElementById(`${ds}Badge`);
+      const cardEl = document.getElementById(`card${ds.charAt(0).toUpperCase() + ds.slice(1)}`);
+      const p = data.risk_percent ?? 0;
+      riskEl.textContent = `${p}%`;
+      setCardStyle(cardEl, riskEl, badgeEl, data, false);
+    }
+
+    function updateFinalCard(data) {
+      const riskEl = document.getElementById("finalRisk");
+      const badgeEl = document.getElementById("finalBadge");
+      const cardEl = document.getElementById("cardFinal");
+      const p = data.risk_percent ?? 0;
+      riskEl.textContent = `${p}%`;
+      setCardStyle(cardEl, riskEl, badgeEl, data, true);
+    }
+
+    function pretty(obj) {
+      return JSON.stringify(obj || {}, null, 2);
+    }
+
+    async function loadLatest() {
+      const res = await fetch("/api/latest");
+      const d = await res.json();
+
+      const w = d.window_fill || {};
+      const wr = d.window_required || {};
+      document.getElementById("sysStatus").textContent = `Status: ${d.status}`;
+      document.getElementById("sysMessage").textContent = `Msg: ${d.message}`;
+      document.getElementById("sysWindow").textContent =
+        `Buffers: DS1 ${w.ds1 ?? 0}/${wr.ds1 ?? 0}, DS2 ${w.ds2 ?? 0}/${wr.ds2 ?? 0}, DS3 ${w.ds3 ?? 0}/${wr.ds3 ?? 0}`;
+      document.getElementById("sysTime").textContent = `Time: ${new Date().toLocaleTimeString()}`;
+
+      if (d.final_fused) updateFinalCard(d.final_fused);
+      if (d.ds1) updatePipelineCard("ds1", d.ds1);
+      if (d.ds2) updatePipelineCard("ds2", d.ds2);
+      if (d.ds3) updatePipelineCard("ds3", d.ds3);
+
+      const s = d.raw_sensor || {};
+      document.getElementById("sTemp").textContent = s.Temp ?? "--";
+      document.getElementById("sHum").textContent = s.Humidity ?? "--";
+      document.getElementById("sEco2").textContent = s.eCO2 ?? "--";
+      document.getElementById("sMq2").textContent = s.MQ2 ?? "--";
+      document.getElementById("sMq4").textContent = s.MQ4 ?? "--";
+      document.getElementById("sMq6").textContent = s.MQ6 ?? "--";
+      document.getElementById("sMq9").textContent = s.MQ9 ?? "--";
+      document.getElementById("sPm25").textContent = s["PM2.5"] ?? "--";
+      document.getElementById("sPm10").textContent = s["PM10"] ?? "--";
+      document.getElementById("sTvoc").textContent = s.TVOC ?? "--";
+      document.getElementById("sUv").textContent = s.UV ?? "--";
+
+      document.getElementById("mapDs1").textContent = pretty(d.mapped_ds1);
+      document.getElementById("mapDs2").textContent = pretty(d.mapped_ds2);
+      document.getElementById("mapDs3").textContent = pretty(d.mapped_ds3);
+      document.getElementById("allSensors").textContent = pretty(d.all_sensor_fields);
+      document.getElementById("modelNotes").textContent = pretty(d.model_notes);
+    }
+
+    async function loadHistory() {
+      const res = await fetch("/api/history");
+      const rows = await res.json();
+
+      riskChart.data.labels = rows.map((_, i) => i + 1);
+      riskChart.data.datasets[0].data = rows.map(r => r.final_risk ?? 0);
+      riskChart.data.datasets[1].data = rows.map(r => r.ds1_risk ?? 0);
+      riskChart.data.datasets[2].data = rows.map(r => r.ds2_risk ?? 0);
+      riskChart.data.datasets[3].data = rows.map(r => r.ds3_risk ?? 0);
+      riskChart.update();
+    }
+
+    async function refresh() {
+      try {
+        await Promise.all([loadLatest(), loadHistory()]);
+      } catch (e) {
+        console.error("Dashboard refresh failed:", e);
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 3000);
+  </script>
+</body>
+</html>

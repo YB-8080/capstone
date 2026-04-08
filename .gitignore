@@ -1,0 +1,35 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# CREDENTIALS (CRITICAL: NEVER COMMIT THESE)
+*serviceAccountKey*
+*.pem
+*.key
+*.cer
+
+# Datasets and redundant copies
+data/
+**/*/datasets/
+**/*/fusion_training_dataset.csv
+
+# Optional: Ignore all models if you don't want to push them
+# *.pt
+# *.pth
+# *.pkl

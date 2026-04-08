@@ -1,0 +1,43 @@
+GLOBAL FUSION MODEL METRICS
+========================================
+train_rows: 165561
+test_rows: 41392
+train_positive: 23770
+train_negative: 141791
+scale_pos_weight: 5.9651241060159865
+best_threshold: 0.5
+accuracy: 0.7238838422883649
+precision: 0.3298147350280052
+recall: 0.6866497234265212
+f1_score: 0.44559786563182147
+
+Train label counts:
+label
+0    141791
+1     23770
+Name: count, dtype: int64
+
+Test label counts:
+label
+0    34703
+1     6689
+Name: count, dtype: int64
+
+Predicted label counts:
+0    27466
+1    13926
+Name: count, dtype: int64
+
+Confusion matrix:
+[[25370  9333]
+ [ 2096  4593]]
+
+Classification report:
+              precision    recall  f1-score   support
+
+           0       0.92      0.73      0.82     34703
+           1       0.33      0.69      0.45      6689
+
+    accuracy                           0.72     41392
+   macro avg       0.63      0.71      0.63     41392
+weighted avg       0.83      0.72      0.76     41392
